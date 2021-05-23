@@ -1,0 +1,13 @@
+[Trigger]
+Type = Path
+Operation = Remove
+Target = usr/lib/modules/*/vmlinuz
+
+[Action]
+Description = Removing secureboot bundles...
+When = PreTransaction
+Exec = /usr/local/bin/secboot pacman-remove
+Depends = efibootmgr
+Depends = python
+NeedsTargets
+
