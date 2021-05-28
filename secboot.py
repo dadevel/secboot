@@ -107,8 +107,8 @@ def pacman_hook(callback, config):
             return
 
 
-def pacman_hook_inner(callback, config, path)
-    kver = path.name
+def pacman_hook_inner(callback, config, path):
+    kver = path.parent.name
     pkgbase = path.parent.joinpath('pkgbase').read_text().strip()
     return callback(pkgbase, kver, config)
 
