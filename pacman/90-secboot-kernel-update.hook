@@ -21,4 +21,3 @@ Depends = python
 Depends = sbsigntools
 Depends = systemd
 NeedsTargets
-

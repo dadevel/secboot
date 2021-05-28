@@ -15,16 +15,13 @@ case "$(source /usr/lib/os-release && echo "${ID_LIKE:-$ID}")" in
         mkdir -p /etc/kernel/postinst.d/ /etc/kernel/postrm.d/
         # replace dracut hooks with nops
         for path in /etc/kernel/postinst.d/dracut /etc/kernel/postrm.d/dracut; do
-            if [ -f "${path}" ]; then
-                rm "${path}"
-                touch "${path}"
-                chmod 0755 "${path}"
-            fi
+            rm -f "${path}"
+            touch "${path}"
+            chmod 0755 "${path}"
         done
         ln -sf "$PREFIX/bin/secboot" /etc/kernel/postinst.d/secboot
         ln -sf "$PREFIX/bin/secboot" /etc/kernel/postrm.d/secboot
         ;;
 esac
-mkdir -p /etc/secboot
+mkdir -p /etc/secboot/
 [ -f /etc/secboot/config.json ] || echo '{}' > /etc/secboot/config.json
-

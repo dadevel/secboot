@@ -10,4 +10,3 @@ Exec = /usr/local/bin/secboot pacman-remove
 Depends = efibootmgr
 Depends = python
 NeedsTargets
-
