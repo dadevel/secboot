@@ -34,6 +34,7 @@ def main(args):
     entrypoint.add_argument('-l', '--log-level', choices=('debug', 'info', 'warning', 'error', 'critical'), default='info')
     if dpkg_params:
         entrypoint.add_argument('name', nargs=1, help='package name')
+        entrypoint.add_argument('path', nargs='?', help='image path (not used)')
     else:
         subparsers = entrypoint.add_subparsers(dest='action', required=True)
         for action in ('update-bundle', 'remove-bundle'):
