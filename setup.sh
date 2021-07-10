@@ -6,7 +6,7 @@ PREFIX="${PREFIX:-/usr/local}"
 
 cd "$(dirname "$0")"
 install -m 0755 -D ./secboot.py "$PREFIX/bin/secboot"
-case "$(source /usr/lib/os-release && echo "${ID_LIKE:-$ID}")" in
+case "$(. /usr/lib/os-release && echo "${ID_LIKE:-$ID}")" in
     arch)
         mkdir -p /etc/pacman.d/hooks/
         cp ./pacman/*.hook /etc/pacman.d/hooks/
