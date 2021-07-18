@@ -102,7 +102,7 @@ def pacman_hook(callback, config):
         path = Path(line)
         if kernel_regex.match(line):
             pacman_hook_inner(callback, config, path)
-        elif ucode.match(line) or stub_regex.match(line):
+        elif ucode_regex.match(line) or stub_regex.match(line):
             for kernel in Path('usr/lib/modules').glob('*/vmlinuz'):
                 pacman_hook_inner(callback, config, kernel)
             return
@@ -368,9 +368,9 @@ class BootManager:
         return list(sorted(self.entries, key=comparator))
 
     def _parse_output(self, text):
-        order_regex = re.compile('BootOrder: (.+?)')
-        kernel_entry_regex = re.compile('Boot(....)\*?\s+(.+?)-' + re.escape(self.config.machine_id))
-        misc_entry_regex = re.compile('Boot(....)\*?\s+.+')
+        order_regex = re.compile(r'BootOrder: (.+?)')
+        kernel_entry_regex = re.compile(r'Boot(....)\*?\s+(.+?)-' + re.escape(self.config.machine_id))
+        misc_entry_regex = re.compile(r'Boot(....)\*?\s+.+')
         order = list()
         kernel_entries = list()
         misc_nums = list()
