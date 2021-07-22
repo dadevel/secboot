@@ -307,7 +307,7 @@ class BundleManager:
         except RuntimeError:
             pass
 
-        path = Path('/usr/lib/modules/{kver}/build/scripts/sign-file')
+        path = Path(f'/usr/lib/modules/{kver}/build/scripts/sign-file')
         if path.exists() and path.is_file():
             return path
 
