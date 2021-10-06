@@ -12,18 +12,37 @@ import sys
 import uuid
 
 DEFAULTS = {
-  'certificate-storage': '/etc/secboot',
-  'machine-id': '/etc/machine-id',
-  'esp-disk': '/dev/disk/by-label/efi',
-  'esp-mountpoint': '/boot/efi',
-  'esp-subdir': '/boot/efi/EFI/Linux',
-  'efi-stub': '/usr/lib/systemd/boot/efi/linuxx64.efi.stub',
-  'initramfs-compression': 'lz4',
-  'dracut-params': [],
-  'kernel-params': '',
-  'kernel-priority': [],
-  'dkms-signing-enabled': False,
-  'dkms-files': []
+    # path to the EFI partition
+    'esp-disk': '/dev/disk/by-label/efi',
+
+    # path to the mountpoint of the EFI partition
+    'esp-mountpoint': '/boot/efi',
+
+    # path to a subdirectory on the EFI partition where the EFI bundles will be stored
+    'esp-subdir': '/boot/efi/EFI/Linux',
+
+    # kernel parameters, the stuff you would normally put into the GRUB_CMDLINE_LINUX_DEFAULT variable in /etc/default/grub
+    'kernel-params': '',
+
+    # which compression algorithm to use, use zstd on modern systems
+    'initramfs-compression': 'lz4',
+
+    # sign dkms modules
+    'dkms-signing-enabled': False,
+    'dkms-files': [],
+
+    # where to store the generated certificates
+    'certificate-storage': '/etc/secboot',
+
+    # additional command line parameters passed to dracut
+    'dracut-params': [],
+
+    # arch linux only: which kernel to boot by default
+    'kernel-priority': [],
+
+    # if your are using systemd there's no need to touch the following options
+    'machine-id': '/etc/machine-id',
+    'efi-stub': '/usr/lib/systemd/boot/efi/linuxx64.efi.stub',
 }
 
 
