@@ -193,7 +193,7 @@ class BundleManager:
         try:
             run('kmodsign', '--version', capture=True)
             return 'kmodsign'
-        except RuntimeError:
+        except Exception:
             pass
 
         path = Path(f'/usr/lib/modules/{kver}/build/scripts/sign-file')
