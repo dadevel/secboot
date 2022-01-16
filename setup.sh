@@ -1,6 +1,5 @@
 #!/bin/sh
-PS4='> '
-set -eux
+set -eu
 
 PREFIX="${PREFIX:-/usr/local}"
 
@@ -19,6 +18,9 @@ case "$(. /usr/lib/os-release && echo "${ID_LIKE:-$ID}")" in
         done
         ln -srf "$PREFIX/bin/secboot" /etc/kernel/postinst.d/secboot
         ln -srf "$PREFIX/bin/secboot" /etc/kernel/postrm.d/secboot
+        ;;
+    *)
+        echo 'unsupported distribution, package manager hooks were not installed' >&2
         ;;
 esac
 mkdir -p /etc/secboot/

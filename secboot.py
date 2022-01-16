@@ -25,7 +25,6 @@ DEFAULTS = {
     # which compression algorithm to use, zstd supported since linux kernel 5.9
     'initramfs-compression': 'lz4',
     # sign dkms modules
-    'dkms-signing-enabled': False,
     'dkms-files': [],
     # where to store the generated certificates
     'certificate-storage': '/etc/secboot',
@@ -53,7 +52,7 @@ def main(args: list[str]) -> None:
             parser = subparsers.add_parser(action)
             parser.add_argument('name', nargs=1, help='package name')
             parser.add_argument('version', nargs=1, help='kernel version')
-        for action in ('generate-certificates', 'enroll-certificates'):
+        for action in ('generate-certificates', 'enroll-certificates', 'check-enrollment'):
             parser = subparsers.add_parser(action)
         for action in ('pacman-update', 'pacman-remove'):
             parser = subparsers.add_parser(action, help='pacman hook')
@@ -62,10 +61,9 @@ def main(args: list[str]) -> None:
     logging.basicConfig(level=opts.log_level.upper(), stream=sys.stderr, format='%(levelname)s %(message)s')
     logging.debug(f'options: {opts}')
 
-    config = Configuration.read(opts.config, opts.log_level)
-    logging.debug(f'configuration: {config}')
-
     if dpkg_params:
+        config = Configuration.read(opts.config, opts.log_level)
+        logging.debug(f'configuration: {config}')
         if dpkg_params.startswith('configure '):
             dpkg_postinst(opts.name[0], config)
         elif dpkg_params.startswith('remove '):
@@ -74,15 +72,30 @@ def main(args: list[str]) -> None:
             logging.warning('called from dpkg: wrong phase')
     else:
         actions = {
-            'update-bundle': lambda o: update_bundle(o.name[0], o.version[0], config),
-            'remove-bundle': lambda o: remove_bundle(o.name[0], o.version[0], config),
-            'generate-certificates': lambda _: generate_certificates(config),
-            'enroll-certificates': lambda _: enroll_certificates(config),
-            'pacman-update': lambda _: pacman_update(config),
-            'pacman-remove': lambda _: pacman_remove(config),
+            'update-bundle': lambda o, c: update_bundle(o.name[0], o.version[0], c),
+            'remove-bundle': lambda o, c: remove_bundle(o.name[0], o.version[0], c),
+            'generate-certificates': lambda _o, c: generate_certificates(c),
+            'enroll-certificates': lambda _o, c: enroll_certificates(c),
+            'check-enrollment': lambda _o, c: check_enrollment(c),
+            'pacman-update': lambda _o, c: pacman_update(c),
+            'pacman-remove': lambda _o, c: pacman_remove(c),
         }
-        action = actions[opts.action]
-        action(opts)
+        try:
+            action = actions[opts.action]
+            config = Configuration.read(opts.config, opts.log_level)
+            action(opts, config)
+        except UsageError as e:
+            logging.error(f'error: {e}')
+            logging.exception(e)
+            sys.exit(1)
+        except Exception as e:
+            logging.error(f'exception: {e}')
+            logging.exception(e)
+            sys.exit(1)
+
+
+class UsageError(Exception):
+    pass
 
 
 @dataclass
@@ -97,7 +110,6 @@ class Configuration:
     dracut_params: list
     kernel_params: str
     kernel_priority: list
-    dkms_signing_enabled: bool
     dkms_files: list
     log_level: str
 
@@ -112,19 +124,25 @@ class Configuration:
         self.dracut_params = [str(x) for x in self.dracut_params]
         self.kernel_params = str(self.kernel_params)
         self.kernel_priority = [str(x) for x in self.kernel_priority]
-        self.dkms_signing_enabled = bool(self.dkms_signing_enabled)
         self.dkms_files = [str(x) for x in self.dkms_files]
 
     @classmethod
     def read(cls, path: Path, log_level: str) -> Configuration:
         try:
-            options = DEFAULTS.copy()
             with open(path) as file:
-                options.update(json.load(file))
+                options = json.load(file)
+            if 'dkms-signing-enabled' in options:
+                logging.warning(f"configuration option 'dkms-signing-enabled' is deprecated")
+                del options['dkms-signing-enabled']
+            options = dict(DEFAULTS.copy(), **options)
             options = {key.replace('-', '_'): value for key, value in options.items()}
             return cls(**options, log_level=log_level)
         except Exception as e:
-            raise AssertionError(f'invalid configuration: {e}') from e
+            raise UsageError(f'invalid configuration: {e}') from e
+
+    @property
+    def dkms_signing_enabled(self) -> bool:
+        return bool(self.dkms_files)
 
     def find_dkms_files(self, version: str) -> Generator[Path, None, None]:
         for pattern in self.dkms_files:
@@ -200,7 +218,7 @@ class BundleManager:
         if path.exists() and path.is_file():
             return path
 
-        raise AssertionError('can not sign kernel modules, neither kmodsign nor sign-file could be found')
+        raise UsageError('can not sign kernel modules, neither kmodsign nor sign-file could be found')
 
     def delete(self, bundle: Bundle) -> None:
         bundle.path.unlink()
@@ -283,13 +301,20 @@ class BootManager:
         return order, kernel_entries, misc_nums
 
 
+class CommandError(Exception):
+    pass
+
+
 def run(*args: Union[str, Path], capture=False) -> str:
     logging.info(f'{" ".join(shlex.quote(str(x)) for x in args)}')
-    process = subprocess.run(args, check=False, capture_output=capture, text=True)
+    try:
+        process = subprocess.run(args, check=False, capture_output=capture, text=True)
+    except Exception as e:
+        raise CommandError(f'subprocess failed: {e}') from e
     if process.returncode != 0:
         if capture:
-            raise RuntimeError(f'subprocess failed: {process.stderr.strip()}')
-        raise RuntimeError(f'subprocess failed: exit code {process.returncode}')
+            raise CommandError(f'subprocess failed: {process.stderr.strip()}')
+        raise CommandError(f'subprocess failed: exit code {process.returncode}')
     return process.stdout
 
 
@@ -359,14 +384,14 @@ def remove_bundle(name: str, version: str, config: Configuration) -> None:
 def generate_certificates(config: Configuration) -> None:
     try:
         run('openssl', 'version', capture=True)
-    except RuntimeError as e:
-        raise AssertionError('openssl not installed') from e
+    except CommandError as e:
+        raise UsageError('openssl not installed') from e
 
     try:
         run('cert-to-efi-sig-list', '--version', capture=True)
         run('sign-efi-sig-list', '--version', capture=True)
-    except RuntimeError as e:
-        raise AssertionError('sbsigntools not installed') from e
+    except CommandError as e:
+        raise UsageError('sbsigntools not installed') from e
 
     storage = config.certificate_storage
     storage.mkdir(exist_ok=True)
@@ -400,17 +425,26 @@ def enroll_certificates(config: Configuration) -> None:
     try:
         run('efi-updatevar', '--version')
         run('efi-readvar', '--version')
-    except RuntimeError as e:
-        raise AssertionError('efitools not installed') from e
+    except CommandError as e:
+        raise UsageError('efitools not installed') from e
 
     try:
         storage = config.certificate_storage
         run('efi-updatevar', '-e', '-f', storage/'db.esl', 'db')
         run('efi-updatevar', '-e', '-f', storage/'kek.esl', 'KEK')
         run('efi-updatevar', '-f', storage/'pk.auth', 'PK')
-        run('efi-readvar')
-    except RuntimeError as e:
-        raise AssertionError('secureboot certificate enrollment failed, ensure that secureboot is in setup mode') from e
+    except CommandError as e:
+        raise UsageError('secureboot certificate enrollment failed, ensure that secureboot is in setup mode') from e
+
+
+def check_enrollment(config: Configuration) -> None:
+    guid = config.certificate_storage.joinpath('guid.txt').read_text()
+    if guid not in run('efi-readvar', '-v', 'PK', capture=True):
+        logging.error(f'pk not enrolled')
+    if guid not in run('efi-readvar', '-v', 'KEK', capture=True):
+        logging.error(f'kek not enrolled')
+    if guid not in run('efi-readvar', '-v', 'db', capture=True):
+        logging.error(f'db not enrolled')
 
 
 if __name__ == '__main__':
