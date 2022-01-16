@@ -204,7 +204,7 @@ class BundleManager:
     def sign_modules(self, bundle: Bundle) -> None:
         signer = self._find_module_signing_tool(bundle.version)
         for path in self.config.find_dkms_files(bundle.version):
-            run(signer, '-d', 'sha512', self.config.certificate_storage/'db.key.pem', self.config.certificate_storage/'db.crt.der', path)
+            run(signer, 'sha256', self.config.certificate_storage/'db.key.pem', self.config.certificate_storage/'db.crt.der', path)
 
     @staticmethod
     def _find_module_signing_tool(kver: str) -> Union[str, Path]:
