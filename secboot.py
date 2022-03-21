@@ -4,6 +4,10 @@ from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, Generator, Union
+try:
+    from packaging.version import LegacyVersion as LooseVersion
+except ModuleNotFoundError:
+    from distutils.version import LooseVersion
 import json
 import logging
 import os
@@ -268,11 +272,12 @@ class BootManager:
     def _sort_entries_by_priority(self) -> list[BootEntry]:
         def comparator(entry):
             try:
-                return self.config.kernel_priority.index(entry.name)
+                priority = self.config.kernel_priority.index(entry.name)
             except ValueError:
-                return float('inf')
+                priority = float('inf')
+            return (-priority, LooseVersion(entry.name))
 
-        return list(sorted(self.entries, key=comparator))
+        return list(reversed(sorted(self.entries, key=comparator)))
 
     def _parse_output(self, text: str) -> tuple[list[str], list[BootEntry], list[str]]:
         order_regex = re.compile(r'BootOrder: (.+?)')
