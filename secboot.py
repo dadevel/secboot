@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Callable, Generator, Union
 try:
     from packaging.version import LegacyVersion as LooseVersion
-except ModuleNotFoundError:
+except (ImportError, ModuleNotFoundError):
     from distutils.version import LooseVersion
 import json
 import logging
