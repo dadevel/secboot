@@ -1,0 +1,11 @@
+[Trigger]
+Type = Path
+Operation = Install
+Operation = Upgrade
+Target = usr/lib/fwupd/efi/fwupdx64.efi
+
+[Action]
+Description = Signing fwupd efi binary...
+When = PostTransaction
+Exec = sbsign --key /etc/secboot/db.key.pem --cert /etc/secboot/db.crt.pem --output /usr/lib/fwupd/efi/fwupdx64.efi.signed /usr/lib/fwupd/efi/fwupdx64.efi
+Depends = sbsigntools
