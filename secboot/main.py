@@ -535,13 +535,13 @@ def enroll_tpm(config: Configuration) -> None:
 
 
 def sbverify(config: Configuration, path: Path) -> bool:
-    return check('sbverify', '--cert', f'{config.certificate_storage}/db.crt.pem', path, stderr=subprocess.PIPE)
+    return check('sbverify', '--cert', f'{config.certificate_storage}/db.crt.pem', path)
 
 
 def sbsign(config: Configuration, path: Path) -> None:
     if not sbverify(config, path):
         logging.info(f'signing {path}')
-        run('sbsign', '--key', config.certificate_storage/'db.key.pem', '--cert', config.certificate_storage/'db.crt.pem', '--output', path, path, stderr=subprocess.PIPE)
+        run('sbsign', '--key', config.certificate_storage/'db.key.pem', '--cert', config.certificate_storage/'db.crt.pem', '--output', path, path)
 
 
 class CommandError(Exception):
@@ -565,7 +565,8 @@ def check(*args: str|Path, **kwargs: Any) -> bool:
     try:
         run(*args, capture=True, **kwargs)
         return True
-    except CommandError:
+    except CommandError as e:
+        logging.debug(e)
         return False
 
 
