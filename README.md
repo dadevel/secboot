@@ -113,6 +113,12 @@ sudo secboot enroll-tpm
 Before you reboot make sure you have a USB drive with a live image of your distro at hand in case something goes wrong.
 Afterwards check the output of `sudo fwupdtool security` and ensure that all checks for HSI-1 and HSI-2 are passed.
 
+On Arch Linux you can now remove `mkinitcpio`.
+
+~~~ bash
+sudo pacman -Rns mkinitcpio
+~~~
+
 ## References
 
 - [User:Krin/Secure Boot, full disk encryption, and TPM2 unlocking install](http://web.archive.org/web/20231203112801/https://wiki.archlinux.org/title/User:Krin/Secure_Boot,_full_disk_encryption,_and_TPM2_unlocking_install)
