@@ -39,6 +39,7 @@ DEFAULTS = {
     # if your are using systemd there's no need to touch the following options
     'machine-id': '/etc/machine-id',
     'efi-stub': '/usr/lib/systemd/boot/efi/linuxx64.efi.stub',
+    'fwupd-binary': '/usr/lib/fwupd/efi/fwupdx64.efi',
     # tpm setup
     'tpm-device': 'auto',
     'tpm-pcrs': '7',
@@ -121,6 +122,7 @@ class Configuration:
     efi_mountpoint: Path
     efi_subdir: Path
     efi_stub: Path
+    fwupd_binary: Path
     initramfs_compression: str
     dracut_params: list
     kernel_params: str
@@ -138,6 +140,7 @@ class Configuration:
         self.efi_mountpoint = Path(self.efi_mountpoint)
         self.efi_subdir = Path(self.efi_subdir)
         self.efi_stub = Path(self.efi_stub)
+        self.fwupd_binary = Path(self.fwupd_binary)
         self.initramfs_compression = str(self.initramfs_compression)
         self.dracut_params = [str(x) for x in self.dracut_params]
         self.kernel_params = str(self.kernel_params)
@@ -208,7 +211,6 @@ class BundleManager:
             '--force',
             '--stdlog', '7' if self.config.debug else '3',
             # behavior
-            '--persistent-policy', 'by-label',
             '--fstab',
             '--reproducible',
             # minify
@@ -471,9 +473,10 @@ def enroll_certificates(config: Configuration) -> None:
     else:
         raise UsageError('partially enrolled Secure Boot certificates, please wipe Secure Boot certificates and try again')
 
-    fwupd_binary = config.efi_mountpoint/'EFI/arch/fwupdx64.efi'
-    if fwupd_binary.exists():
-        sbsign(config, fwupd_binary)
+    if config.fwupd_binary.exists():
+        signed_binary = config.fwupd_binary.with_suffix('.efi.signed')
+        if not signed_binary.exists():
+            sbsign(config, config.fwupd_binary, outpath=signed_binary)
     else:
         logging.warning('fwupd is missing')
 
@@ -538,10 +541,10 @@ def sbverify(config: Configuration, path: Path) -> bool:
     return check('sbverify', '--cert', f'{config.certificate_storage}/db.crt.pem', path)
 
 
-def sbsign(config: Configuration, path: Path) -> None:
+def sbsign(config: Configuration, path: Path, outpath: Path|None = None) -> None:
     if not sbverify(config, path):
         logging.info(f'signing {path}')
-        run('sbsign', '--key', config.certificate_storage/'db.key.pem', '--cert', config.certificate_storage/'db.crt.pem', '--output', path, path)
+        run('sbsign', '--key', config.certificate_storage/'db.key.pem', '--cert', config.certificate_storage/'db.crt.pem', '--output', path, outpath or path)
 
 
 class CommandError(Exception):

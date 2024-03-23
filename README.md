@@ -52,6 +52,7 @@ Example for Ubuntu with automatic signing of dynamic kernel modules:
 {
   "efi-partition": "/dev/sda1",
   "efi-mountpoint": "/boot/efi",
+  "efi-subdir": "/boot/efi/EFI/Linux",
   "luks-partition": "/dev/sda2",
   "kernel-params": "rw root=LABEL=root",
   "dkms-files": ["/usr/lib/modules/{version}/updates/dkms/*.ko"]
@@ -63,19 +64,13 @@ Example for Arch Linux with additional hardening and fallback to LTS kernel:
 ~~~ json
 {
   "efi-partition": "/dev/nvme0n1p1",
-  "efi-mountpoint": "/boot/efi",
+  "efi-mountpoint": "/boot",
+  "efi-subdir": "/boot/EFI/Linux",
   "luks-partition": "/dev/nvme0n1p2",
   "kernel-params": "rw rd.luks.allow-discards rd.luks.timeout=0 root=LABEL=root rootflags=x-systemd.device-timeout=0 lsm=capability,landlock,lockdown,yama,bpf,integrity rd.shell=0 rd.emergency=reboot quiet",
   "kernel-priority": ["linux", "linux-lts"],
   "initramfs-compression": "zstd"
 }
-~~~
-
-Both examples assume an `/etc/fstab` that looks like this:
-
-~~~
-LABEL=root /         ext4 defaults 0 1
-LABEL=efi  /boot/efi vfat nodev,noexec,nosuid 0 2
 ~~~
 
 Before you continue bring your UEFI firmware into Secure Boot Setup Mode.
@@ -94,20 +89,20 @@ The command is idempotent and can be repeated in case of failure.
 sudo secboot enroll-certificates
 ~~~
 
-Then trigger the build of the UKI by reinstalling the kernel package.
+Next add a TPM-protected key to LUKS.
+The command is idempotent as well.
+
+~~~ bash
+sudo secboot enroll-tpm
+~~~
+
+Then trigger a rebuild of the UKI by reinstalling the kernel package.
 
 ~~~ bash
 # Arch Linux
 sudo pacman -S linux
 # Debian/Ubuntu
 sudo apt install --reinstall -y linux-image-6.5.0-21-generic
-~~~
-
-Finally add a TPM-protected key to LUKS.
-The command is idempotent as well.
-
-~~~ bash
-sudo secboot enroll-tpm
 ~~~
 
 Before you reboot make sure you have a USB drive with a live image of your distro at hand in case something goes wrong.
