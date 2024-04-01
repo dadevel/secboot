@@ -116,6 +116,8 @@ sudo pacman -Rns mkinitcpio
 
 ## Troubleshooting
 
+The warning *data remaining: gaps between PE/COFF sections?* is caused by `sbsign` and can be safely ignored.
+
 If fwupd fails on Arch Linux with the error *Secure Boot is enabled, but shim isn't installed* then run `sudo touch /boot/efi/EFI/arch/shimx64.efi`.
 
 ## References

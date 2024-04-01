@@ -542,9 +542,9 @@ def sbverify(config: Configuration, path: Path) -> bool:
 
 
 def sbsign(config: Configuration, path: Path, outpath: Path|None = None) -> None:
-    if not sbverify(config, path):
+    if not sbverify(config, outpath or path):
         logging.info(f'signing {path}')
-        run('sbsign', '--key', config.certificate_storage/'db.key.pem', '--cert', config.certificate_storage/'db.crt.pem', '--output', path, outpath or path)
+        run('sbsign', '--key', config.certificate_storage/'db.key.pem', '--cert', config.certificate_storage/'db.crt.pem', '--output', outpath or path, path)
 
 
 class CommandError(Exception):
