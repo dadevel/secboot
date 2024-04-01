@@ -114,6 +114,10 @@ On Arch Linux you can now remove `mkinitcpio`.
 sudo pacman -Rns mkinitcpio
 ~~~
 
+## Troubleshooting
+
+If fwupd fails on Arch Linux with the error *Secure Boot is enabled, but shim isn't installed* then run `sudo touch /boot/efi/EFI/arch/shimx64.efi`.
+
 ## References
 
 - [User:Krin/Secure Boot, full disk encryption, and TPM2 unlocking install](http://web.archive.org/web/20231203112801/https://wiki.archlinux.org/title/User:Krin/Secure_Boot,_full_disk_encryption,_and_TPM2_unlocking_install)
