@@ -89,13 +89,6 @@ The command is idempotent and can be repeated in case of failure.
 sudo secboot enroll-certificates
 ~~~
 
-Next add a TPM-protected key to LUKS.
-The command is idempotent as well.
-
-~~~ bash
-sudo secboot enroll-tpm
-~~~
-
 Then trigger a rebuild of the UKI by reinstalling the kernel package.
 
 ~~~ bash
@@ -105,8 +98,39 @@ sudo pacman -S linux
 sudo apt install --reinstall -y linux-image-6.5.0-21-generic
 ~~~
 
-Before you reboot make sure you have a USB drive with a live image of your distro at hand in case something goes wrong.
-Afterwards check the output of `sudo fwupdtool security` and ensure that all checks for HSI-1 and HSI-2 are passed.
+Next reboot your computer.
+
+~~~ bash
+sudo systemctl reboot
+~~~
+
+Wait until the reboot completed and verify that Secure Boot is active.
+
+~~~ bash
+sudo fwupdtool security 2> /dev/null | grep -i 'secure boot'
+~~~
+
+Now add a TPM-protected key to LUKS.
+The command is idempotent as well.
+
+~~~ bash
+sudo secboot enroll-tpm
+~~~
+
+Then trigger another UKI rebuild.
+
+~~~ bash
+# Arch Linux
+sudo pacman -S linux
+# Debian/Ubuntu
+sudo apt install --reinstall -y linux-image-6.5.0-21-generic
+~~~
+
+And reboot one more time.
+
+~~~ bash
+sudo systemctl reboot
+~~~
 
 On Arch Linux you can now remove `mkinitcpio`.
 
