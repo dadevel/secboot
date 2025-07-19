@@ -86,7 +86,7 @@ def main() -> None:
         elif dpkg_params.startswith('remove '):
             dpkg_postrm(opts.name[0], config)
         else:
-            logging.warning('called from dpkg: wrong phase')
+            logging.warning(f'called from wrong dpkg phase with params {dpkg_params!r}')
     else:
         actions = {
             'enroll-certificates': lambda _o, c: enroll_certificates(c),
@@ -203,11 +203,13 @@ class BundleManager:
         logging.info(f'building UKI {bundle.path} with kernel cmdline {kernel_params!r}')
         logging.debug(f'using following kernel cmdline: {kernel_params}')
         self.config.efi_subdir.mkdir(parents=True, exist_ok=True)
+        empty_dir = Path('/var/empty')
+        empty_dir.mkdir(exist_ok=True)
         run(
             'dracut',
             # ignore config files
             '--conf', '/dev/null',
-            '--confdir', '/var/empty',
+            '--confdir', empty_dir,
             '--force',
             '--stdlog', '7' if self.config.debug else '3',
             # behavior
@@ -305,8 +307,8 @@ class BootManager:
         self.order, self.entries, self.misc_nums = self._parse_output(output)
 
     @staticmethod
-    def _versionify(value: str) -> tuple:
-        return tuple(int(x) if x.isnumeric() else x for x in re.split(r'\.|-', value))
+    def _versionify(value: str) -> tuple[int, ...]:
+        return tuple(int(x) for x in re.split(r'\.|-', value) if x.isnumeric())
 
     def _sort_entries_by_priority(self) -> list[BootEntry]:
         def comparator(entry):
